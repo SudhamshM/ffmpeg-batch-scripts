@@ -1,0 +1,18 @@
+0-6min.39.360 sec, 6min.44.863 sec-23min.47 sec, 25min.56 sec-33min.30sec, 33min.38sec-1hr27min0sec, 1hr28min30sec
+
+
+template below for windows powershell command for trimming video/audio segments selectively:
+
+ffmpeg -i looper.mp4 `
+-vf "select='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+setpts=N/FRAME_RATE/TB","subtitles=looper.srt" `
+-af "aselect='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+asetpts=N/SR/TB" -preset ultrafast looper_censortest.mp4
+
+alternatively, encode subs in first to avoid altering subtitle file and trim out segments with video above command except subtitle part:
+
+ffmpeg -i looperSubbed.mp4 `
+-vf "select='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+setpts=N/FRAME_RATE/TB",`
+-af "aselect='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+asetpts=N/SR/TB" -preset ultrafast looper_censortest.mp4

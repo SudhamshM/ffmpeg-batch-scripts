@@ -1,2 +1,2 @@
-# ffmpeg-batch-scripts
-A collection of FFmpeg batch scripts for various video manipulations.
+# FFmpeg Batch Scripts
+A collection of my personal FFmpeg batch scripts for various video manipulations.

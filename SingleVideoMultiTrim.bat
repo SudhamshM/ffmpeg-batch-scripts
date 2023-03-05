@@ -1,0 +1,5 @@
+ffmpeg -ss 00:10:46.000 -i "ll1.mp4" -c:v copy -c:a copy -t 00:10:00 "trimmed1.mp4"
+ffmpeg -ss 00:15:26.000 -i "ll2.mp4" -c:v copy -c:a copy -t 00:10:00 "trimmed2.mp4"
+ffmpeg -ss 00:09:31.000 -i "ll3.mp4" -c:v copy -c:a copy -t 00:10:00 "trimmed3.mp4"
+ffmpeg -ss 00:13:41.000 -i "ll4.mp4" -c:v copy -c:a copy -t 00:10:00 "trimmed4.mp4"
+ffmpeg -i "trimmed1.mp4" -i "trimmed2.mp4" -i "trimmed3.mp4" -i "trimmed4.mp4" -filter_complex "[0:v]crop=480:852[v0];[1:v]crop=480:852[v1];[2:v]crop=480:852[v2];[3:v]crop=480:852[v3];[v0][v1][v2][v3];xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[grid];[0:a][1:a][2:a][3:a]amerge=inputs=4[af]" -map "[grid]" -map "[af]" -vsync 2 -preset veryfast "2x2gridvideotest.mp4"

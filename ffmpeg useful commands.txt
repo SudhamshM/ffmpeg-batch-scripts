@@ -1,0 +1,194 @@
+ffmpeg -i long.mp4 -i shorter.mp4 -filter_complex "[0][1]scale2ref='oh*mdar':'if(lt(main_h,ih),ih,main_h)'[0s][1s]; [1s][0s]scale2ref='oh*mdar':'if(lt(main_h,ih),ih,main_h)'[1s][0s];[0:a][1:a]amerge=inputs=2[a]; [0s][1s]hstack,setsar=1" -map "[a]" -ac 2 outputsplitscreenstack.mp4
+
+ffmpeg -i long.mp4 -vf 'pad=iw:2*ih [top]; movie=shorter.mp4 [top]; [top][top] overlay=0:main_h/2' stacked.mp4
+
+stacking videos horizontal same duration and width:- 
+ffmpeg -i input0 -i input1 -filter_complex hstack=inputs=2 output
+
+ffmpeg -i input0 -i input1 -i input2 -i input3 -filter_complex `
+"[0:v][1:v]hstack[top]; `
+ [2:v][3:v]hstack[bottom]; `
+ [top][bottom]vstack[v]; `
+ [0:a][1:a][2:a][3:a]amerge=inputs=4[a]" `
+-map "[v]" -map "[a]" -ac 2 output
+
+ffmpeg -i input0 -i input1 -filter_complex "[0:v][1:v]vstack=inputs=2[v];[0:a][1:a]amerge=inputs=2[a]" -map "[v]" -map "[a]" -ac 2 output
+
+
+stacking videos horizontally different duration:- 
+ffmpeg -i input0.mp4 -i input1.mp4 -filter_complex hstack=inputs=2:shortest=1 shortest-output.mp4
+
+timestamp and text on video with audio filter and video filter for split screen below:-
+ffmpeg -i long.mp4 -i longer.mp4 -filter_complex "[0:a]volume=1[b];[1:a]volume=0.25[c];[0]drawtext=fontfile=C\\:/Windows/fonts/consola.ttf:fontsize=72:fontcolor='white':timecode='00\:00\:00\:00':rate=25:text='TCR\:':boxcolor=0x000000AA:box=1:x=860-text_w/2:y=960[v0];[1]drawtext=fontfile=C\\:/Windows/fonts/consola.ttf:fontsize=72:fontcolor='white':timecode='00\:00\:00\:00':rate=25:text='TCR\:':boxcolor=0x000000AA:box=1:x=860-text_w/2:y=960[v1];[v0][v1]vstack=inputs=2[v];[b][c]amerge=inputs=2[a]" -map "[v]" -map "[a]" -ac 2 -vsync 2 -preset ultrafast output.mp4
+
+
+0-6min.39.360 sec, 6min.44.863 sec-23min.47 sec, 25min.56 sec-33min.30sec, 33min.38sec-1hr27min0sec, 1hr28min30sec
+
+
+template below for windows powershell command for cutting/censoring video/audio segments selectively:
+
+ffmpeg -i looper.mp4 `
+-vf "select='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+setpts=N/FRAME_RATE/TB","subtitles=looper.srt" `
+-af "aselect='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+asetpts=N/SR/TB" -preset ultrafast looper_censortest.mp4
+
+alternatively, encode subs in first to avoid altering subtitle file and trim out segments with video above command except subtitle part:
+
+ffmpeg -i looperSubbed.mp4 `
+-vf "select='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+setpts=N/FRAME_RATE/TB",`
+-af "aselect='between(t,0,399.360)+between(t,404,1427)+between(t,1556,2010)+between(t,2018,5220)+between(t,5310,7000)',
+asetpts=N/SR/TB" -preset ultrafast looper_censortest.mp4
+
+
+ffmpeg blur 4 seconds in fade-in:-
+ ffmpeg -i long.mp4 -filter_complex `
+"[0:v]split=2[base][blurred]; `
+[blurred]boxblur=luma_radius=50:chroma_radius=25:luma_power=1[blurred]; `
+[blurred]fade=type=in:start_time=5:duration=1:alpha=1[blurred-with-fadein]; `
+[base][blurred-with-fadein]overlay[blurout]" -map "[blurout]" blurout.mp4
+
+creating 2x2 grid of videos with all audios:-
+ffmpeg -i "blurout.mp4" -i "blurout.mp4" -i "blurout.mp4" -i "blurout.mp4" -filter_complex "[0:v][1:v][2:v][3:v]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[grid];[0:a][1:a][2:a][3:a]amerge=inputs=4[af]" -map "[grid]" -map "[af]" "2x2gridvideotest.mp4"
+
+
+creating 9x9 grid with scaling to 480p and all audio inputs:-
+ ffmpeg `
+-i a.mp4 `
+-i b.mp4 `
+-i c.mp4 `
+-i d.mp4 `
+-i e.mp4 `
+-i f.mp4 `
+-i g.mp4 `
+-i h.mp4 `
+-i i.mp4 `
+-filter_complex "[0:v] setpts=PTS-STARTPTS, scale=hd480[a0];[1:v] setpts=PTS-STARTPTS, scale=hd480[a1];[2:v] setpts=PTS-STARTPTS, scale=hd480[a2];[3:v] setpts=PTS-STARTPTS, scale=hd480[a3];[4:v] setpts=PTS-STARTPTS, scale=hd480[a4];[5:v] setpts=PTS-STARTPTS, scale=hd480[a5];[6:v] setpts=PTS-STARTPTS, scale=hd480[a6];[7:v] setpts=PTS-STARTPTS, scale=hd480[a7];[8:v] setpts=PTS-STARTPTS, scale=hd480[a8];[a0][a1][a2][a3][a4][a5][a6][a7][a8]xstack=inputs=9:layout=0_0|w0_0|w0+w1_0|0_h0|w0_h0|w0+w1_h0|0_h0+h1|w0_h0+h1|w0+w1_h0+h1:shortest=1[out];[0:a][1:a][2:a][3:a][4:a][5:a][6:a][7:a][8:a]amerge=inputs=9[af]" -vsync 2 -map "[out]" -map "[af]" -ac 2 -preset ultrafast -crf 26 "ninesplit.mp4"
+
+
+creating 5 split screen with 5th video is small and center on screen with multi-audio:-
+ffmpeg -i "a.mp4" -i "b.webm" -i "c.webm" -i "d.webm" -i "e.mp4" -filter_complex "[4:v]scale=hd480[v4];[0:v][1:v][2:v][3:v]xstack=inputs=4:layout=0_0|0_h0|w0_0|w0_h0[out];[out][v4]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:shortest=1[out];[out]scale=hd480[out];[0:a][1:a][2:a][3:a][4:a]amix=inputs=5[af]" -map "[out]" -map "[af]" -metadata:s:a:0 title="All-Audios" -map 0:a -metadata:s:a:1 title="Top-Left" -map 1:a -metadata:s:a:2 title="Bottom-Left" -map 2:a -metadata:s:a:3 title="Top-Right" -map 3:a -metadata:s:a:4 title="Bottom-Right" -ac 2 -vsync 2 -preset ultrafast middleout.mp4
+
+
+creating 5 split screen with one of them large at left and other equal squares:-
+ffmpeg -i "a.mp4" -i "a.mp4" -i "a.mp4" -i "a.mp4" -i "a.mp4" -filter_complex "[0]scale=-1:720[v0];[1]scale=-1:360[v1];[2]scale=-1:360[v2];[3]scale=-1:360[v3];[4]scale=-1:360[v4];[v0][v1][v2][v3][v4]xstack=inputs=5:layout=0_0|w0_0|w0+w1_0|w0_h1|w0+w1_h1[v]" -map "[v]" -map 0:a output.mp4
+
+mirroring perfect 4 videos:-
+ffmpeg -i "9.mp4" -i "9.mp4" -i "9.mp4" -i "9.mp4" -filter_complex "[1:v]hflip[v1];[2:v]vflip[v2];[3:v]hflip[v3];[v3]vflip[v3];[0:v][v1][v2][v3]xstack=inputs=4:layout=0_0|w0_0|0_h0|w0_h0[grid];[grid]scale=hd480[grid];[0:a][1:a][2:a][3:a]amerge=inputs=4[af]" -map "[grid]" -map "[af]" -ac 2 -preset ultrafast "2x2gridvideotest.mp4"
+
+
+ffmpeg 5th video on background and rest 4 are small in center mosaic:-
+ffmpeg -i a.mp4 -i a.mp4 -i a.mp4 -i a.mp4 -i a.mp4 -filter_complex "[0:v]scale=nhd[v0];[1:v]scale=nhd[v1];[2:v]scale=nhd[v2];[3:v]scale=nhd[v3];[v0][v1][v2][v3]xstack=inputs=4:layout=0_0|0_h0|w0_0|w0_h0[stk];[4:v][stk]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2[out]" -map "[out]" -preset veryfast middleout.mp4
+
+
+command to overlay small video near top left:-
+ffmpeg -i a.mp4 -vf "movie=a.mp4, scale=250: -1 [inner]; [in][inner] overlay =10: 10 [out];[out][0]overlay=10:10[k]" completed.mp4
+
+same but more nicer to split input streams for reusing:-
+ffmpeg -i "a.mp4" -filter_complex "[0]split=2[v0][v1];[v1]scale=nhd[v1];[v0][v1]overlay=x=200:y=200[over1]" -map "[over1]" splitoverlay.mp4
+
+two overlays at different positions from youtube https://www.youtube.com/watch?v=nE_Vv_IrlNQ:-
+ffmpeg -hide_banner -i "a.mp4" -filter_complex "[0]split=3[v0][v1][v2];[v1]scale=nhd[scaled0];[v2]scale=nhd[scaled1];[v0][scaled0]overlay=360:72[OL0];[OL0][scaled1]overlay=10:10[OL1]" -map [OL1] doubleoverlaytest.mp4
+
+three overlays from one input split 4 times:-
+ffmpeg -hide_banner -i "a.mp4" -filter_complex "[0]split=4[v0][v1][v2][v3];[v1]scale=nhd[scaled0];[v2]scale=nhd[scaled1];[v3]scale=nhd[scaled2];[v0][scaled0]overlay=360:72[OL0];[OL0][scaled1]overlay=10:10[OL1];[OL1][scaled2]overlay=10:main_h-(overlay_h+10)[OL2]" -map [OL2] doubleoverlaytest.mp4
+
+four overlay:-
+ffmpeg -hide_banner -i "a.mp4" -filter_complex "[0]split=5[v0][v1][v2][v3][v4];[v1]scale=nhd[scaled0];[v2]scale=nhd[scaled1];[v3]scale=nhd[scaled2];[v4]scale=nhd[scaled3];[v0][scaled0]overlay=20:20[OL0];[OL0][scaled1]overlay=main_w-(overlay_w+20)[OL1];[OL1][scaled2]overlay=10:main_h-(overlay_h+10)[OL2];[OL2][scaled3]overlay=main_w-(overlay_w+20):main_h-(overlay_h+20)[OL3]" -map [OL3] fouroverlaytest.mp4
+
+
+doing transparent with 70% opacity with 2 videos using blend:-
+ffmpeg -n -i a.mov -i b.mp4 -filter_complex "[0:v]setsar=sar=1[v];[v][1]blend=all_mode='overlay':all_opacity=0.7" -movflags +faststart video.mp4
+
+doing only overlay transparent from second file input with 70% opacity using colorchannelmixer:-
+ffmpeg -n -i a.mov -i b.mp4 -filter_complex "[1:v]format=rgba,colorchannelmixer=aa=0.7[fg];[0][fg]overlay" -movflags +faststart video2.mp4
+
+main options:-
+-f fmt (input/output)
+Force input or output file format. The format is normally auto detected for input files and guessed from the file extension for output files, so this option is not needed in most cases.
+
+-i url (input)
+input file url
+
+-y (global)
+Overwrite output files without asking.
+
+-n (global)
+Do not overwrite output files, and exit immediately if a specified output file already exists.
+
+-stream_loop number (input)
+Set number of times input stream shall be looped. Loop 0 means no loop, loop -1 means infinite loop.
+
+-c[:stream_specifier] codec (input/output,per-stream)
+-codec[:stream_specifier] codec (input/output,per-stream)
+Select an encoder (when used before an output file) or a decoder (when used before an input file) for one or more streams. codec is the name of a decoder/encoder or a special value copy (output only) to indicate that the stream is not to be re-encoded.
+
+
+
+
+four transparent video 70% opacity in 4 split screen with 1 in background:-
+ffmpeg -i a.mov -i b.mp4 -i b.mp4 -i b.mp4 -i b.mp4 -filter_complex "[1:v]format=rgba,colorchannelmixer=aa=0.7[fg];[fg]scale=nhd[fg];[2:v]scale=nhd[v2];[v2]format=rgba,colorchannelmixer=aa=0.7[v2];[3:v]scale=nhd[v3];[v3]format=rgba,colorchannelmixer=aa=0.7[v3];[4:v]scale=nhd[v4];[v4]format=rgba,colorchannelmixer=aa=0.7[v4];[0][fg]overlay=20:20[OL0];[OL0][v2]overlay=main_w-(overlay_w+20)[OL1];[OL1][v3]overlay=10:main_h-(overlay_h+10)[OL2];[OL2][v4]overlay=main_w-(overlay_w+20):main_h-(overlay_h+20)[OL3]" -map [OL3] fouroverlaytest.mp4
+
+
+taking 4x4 total 16 splitscreen video and overlaying transparent with one main in background:-
+ffmpeg -i transparent.mp4 -i background.mp4 -filter_complex "[0:v]setsar=sar=1[v];[v][1]blend=all_mode='overlay':all_opacity=0.7[ff]" -map "[ff]" -map 0:a -preset veryfast videof.mp4
+
+
+same but this is BETTER only overlay is transparent 70% but above is both transparent:-
+ffmpeg -i transparent.mp4 -i background.mp4 -filter_complex "[1:v]format=rgba,colorchannelmixer=aa=0.70[fg];[0][fg]overlay" -movflags +faststart video2.mp4
+
+
+naming audio streams with 4 split-screen with mixed audio+indiviual audios:-
+ffmpeg -i "a.mp4" -i "b.mp4" -i "c.mp4" -i "d.mp4" -filter_complex "[0:v][1:v][2:v][3:v]xstack=inputs=4:layout=0_0|0_h0|w0_0|w0_h0[stk];[stk]scale=hd480[stk];[0:a][1:a][2:a][3:a]amix=inputs=4[af]" -map [stk] -map [af] -metadata:s:a:0 title="All-Audios" -map 0:a -metadata:s:a:1 title="Top-Left" -map 1:a -metadata:s:a:2 title="Bottom-Left" -map 2:a -metadata:s:a:3 title="Top-Right" -map 3:a -metadata:s:a:4 title="Bottom-Right" -vsync 2 -ac 2 -crf 28 -preset veryfast "4audiopromo.mp4"
+
+merging three videos so one plays after the other:-
+ffmpeg -i "d.mp4" -i "c.mp4" -i "d.mp4" -filter_complex "[0:v] [0:a] [1:v] [1:a] [2:v] [2:a] concat=n=3:v=1:a=1 [v] [a]" -map "[v]" -map "[a]" -preset ultrafast -vsync 2 output.mp4
+
+merging/concat two videos:-
+ffmpeg -i "a.mp4" -i "b.mp4" -filter_complex `
+"[0:0][0:1][1:0][1:1] `
+concat=n=2:v=1:a=1[v][a]" `
+-map [v] -map [a] -vsync 2 -preset ultrafast outputconcat.mp4
+
+
+taking one video and making splitscreen transparency in one command:-
+ffmpeg -i "cc4.mp4" -filter_complex "split=4[v0][v1][v2][v3];[v0][v1][v2][v3]xstack=4:layout=0_0|0_h0|w0_0|w0_h0[stk];[stk]scale=hd720[stk];[0:v]format=rgba,colorchannelmixer=aa=0.7[fg];[stk][fg]overlay[final]" -map [final] -map 0:a "cc5.mp4"
+
+portrait video to add blur background instead of black background:-
+ffmpeg -i "portrait.mp4" -vf "split[original][copy];[copy]scale=ih*16/9:-1,crop=h=iw*9/16,gblur=sigma=20[blurred];[blurred][original]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2" -preset ultrafast output.mp4
+
+
+create individual thumbnail pics from pics needed and duration in seconds:-
+ffmpeg -i "input.mp4" -vf "fps=1/<TOTAL-SECONDS-DIVIDED-BY-PICS-NEEDED>" img%03d.jpg
+
+create a complete mosaic of frames taken every 33 seconds in 667 second video in 3x2 tile:-
+ffmpeg -i "input.mp4" -vf select='isnan(prev_selected_t)+gte(t-prev_selected_t\,33)',tile=3x2 -frames:v 1 preview.png
+
+same but resizing images before mosaic for total 20 images (mostly same):-
+ffmpeg -i "input.mp4" -vf select='isnan(prev_selected_t)+gte(t-prev_selected_t\,33)',scale=640:-1,tile=4x5 -frames:v 1 preview.png
+
+creating complete keyframe mosaic for multiple thumbs:-
+ffmpeg -skip_frame nokey -i "input.mp4" -vf 'scale=128:72,tile=3x3' -an -vsync 0 keyframes%03d.png
+
+cut 2 seconds of video every 4 seconds:-
+ffmpeg -i "tckk.mp4" -filter_complex "[0:V]select='if(gte(t,ld(1)+4),st(1,t)*0,if(ld(1),gt(t,ld(1)+2),1))',setpts=N/(25*TB);[0:a]aselect='if(gte(t,ld(1)+4),st(1,t)*0,if(ld(1),gt(t,ld(1)+2),1))',asetpts=N/SR/TB" OUT.mp4
+
+cropping 16:9 video to a cropped lower 9:16 portrait:-
+ffmpeg -i "a.mp4" -vf "crop=in_w-2*240:in_h:240:0" "b.mp4"
+
+converting 16:9 video to 9:16 portrait from lanscape but with black bar padding:-
+ffmpeg -i input.mp4 -vf "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:-1:-1:color=black" output.mp4
+
+overlay video on another video in center:-
+ffmpeg -i "main.mp4" -i "overlay.mp4" -filter_complex "[0:v][1:v]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2" -codec:a copy output.mp4
+
+second video cropped to portrait while first is background landscape:-
+ffmpeg -i "a.mp4" -i "b.mp4" -filter_complex "[1:v]crop=0.5*iw:ih[crop];[0:v][crop]overlay=(W-w)/2:(H-h)/2" out.mp4
+
+segment video into 20 minute or however chunks:-
+ffmpeg -i input.mp4 -c copy -map 0 -segment_time 00:20:00 -f segment -reset_timestamps 1 output%03d.mp4
+
+
+MKVEXTRACT.exe command line to extract subtitles from mkv file with track number of sub:- (run as admin cmd)
+mkvextract.exe tracks "pathtovideo.mkv" <track-number-of-subtitle>:"videoname.srt"
